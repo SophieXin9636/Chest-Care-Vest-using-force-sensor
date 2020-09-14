@@ -1,16 +1,17 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
-#define SOFT 400
+#define SOFT 300
 #define MDEIUM 500
-#define HARD 900
+#define HARD 1000
 #define NUM_SENSOR 6
  
 const char* ssid = ""; // GPIO 21 SDA
 const char* password = "";   // GPIO 22 SCL
-const char* mqttServer = "";
+const char* mqttServer = ""; //"";
 const char* mqttUserName = "";
 const char* mqttPwd = "";
-char* mqtt_topic = "Home/Force";
+const char* clientID = "";
+char* mqtt_topic = "";
 
 // define LED channels (total 16 channels)
 #define LEDC_CHANNEL_0_R 0
@@ -27,7 +28,7 @@ char* mqtt_topic = "Home/Force";
 #define LEDRpin 23 // GPIO 18: PWM
 #define LEDGpin 22
 #define LEDBpin 21
-#define limit 300
+#define limit 200
 
 int fsrData[NUM_SENSOR];
 int force_data[NUM_SENSOR][100] = {0};
@@ -84,7 +85,7 @@ void reconnect() {
 }
  
 void setup() {
-    //analogReadResolution(10); // resolution: 10-bit 0~1023
+    analogReadResolution(10); // resolution: 10-bit 0~1023
     Serial.begin(115200);
     setup_led();
     setup_wifi();
@@ -160,7 +161,7 @@ void loop() {
         client.publish(mqtt_topic, json);
         msgStr = ""; // clear message
     }
-    delay(100);
+    delay(10);
 }
 
 void initialize(int patNo){
