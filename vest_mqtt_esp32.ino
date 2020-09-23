@@ -7,7 +7,7 @@
  
 const char* ssid = ""; // GPIO 21 SDA
 const char* password = "";   // GPIO 22 SCL
-const char* mqttServer = ""; //"";
+const char* mqttServer = ""; //"140.117.189.242";
 const char* mqttUserName = "";
 const char* mqttPwd = "";
 const char* clientID = "";
@@ -42,6 +42,10 @@ unsigned long prevMillis = 0;  // 暫存經過時間（毫秒）
 WiFiClient espClient;
 PubSubClient client(espClient);
 void callback(char* topic, byte* payload, unsigned int length);
+void initialize(int patNo);
+void readata();
+void showInfo();
+void set_LED_color(int R, int G, int B);
 
 void callback(char* topic, byte* payload, unsigned int length){
     byte* p = (byte*)malloc(length);
@@ -79,7 +83,7 @@ void reconnect() {
             Serial.print("Failed, rc=");
             Serial.print(client.state());
             Serial.println(" try again in 5 seconds");
-            delay(5000);  // 等5秒之後再重試
+            delay(5000);  // waiting 5 sec to retry
         }
     }
 }
@@ -115,10 +119,13 @@ void loop() {
     }
     int num_input_data = 0;
     for(; trigger = true && force_data[patNo][num_input_data] > limit; ){
-        Serial.print(force_data[patNo][num_input_data]);
-        Serial.print(" ");
+        //Serial.print(force_data[patNo][num_input_data]);
+        //Serial.print(" ");
         num_input_data++;
-        if(num_input_data >= 6) break;
+        if(num_input_data >= 6){
+            num_input_data = 6;
+            break;
+        }
 
         switch(patNo){
             case 0:
@@ -136,28 +143,35 @@ void loop() {
             default:
                 break;
         }
-        if(force_data[patNo][num_input_data] > HARD){ // too hard
-            set_LED_color(HIGH,LOW,LOW); // RED
+        delay(100);
+    }
+    
+    if(num_input_data){
+        // caculate average force
+        int force_sum = 0;
+        short int ct = 0, level = 0;
+        for(ct = 0; ct < num_input_data && ct <= 6; ct++){
+            force_sum += force_data[patNo][ct];
         }
-        else if(force_data[patNo][num_input_data] > MDEIUM){ // standard
+        int avg_force = force_sum / num_input_data;
+        Serial.println(avg_force);
+        if(avg_force > HARD){ // too hard
+            set_LED_color(HIGH,LOW,LOW); // RED
+            level = 2;
+        }
+        else if(avg_force > MDEIUM){ // standard
             set_LED_color(LOW,HIGH,LOW); // GREEN
+            level = 1;
         }
         else{ // too soft
             set_LED_color(LOW,LOW,HIGH); // BLUE
+            level = 0;
         }
-        delay(100);
-    }
-    client.loop();
-    if(num_input_data){
         // Create MQTT message (JSON format)
-        msgStr = msgStr + "{\"No\":" + patNo + ", \"force\":";
-        for(int j=0; j < num_input_data; j++){
-            msgStr = msgStr + force_data[patNo][j] + " ";
-        }
-        msgStr = msgStr + "}";
+        msgStr = msgStr + "{\"No\":" + patNo + ", \"level\":" + level +  ", \"force\":" + avg_force + "}";
         msgStr.toCharArray(json, 50);
         unsigned int len = strlen(json);
-        callback(mqtt_topic, (byte*)json, len);
+        //callback(mqtt_topic, (byte*)json, len);
         client.publish(mqtt_topic, json);
         msgStr = ""; // clear message
     }
