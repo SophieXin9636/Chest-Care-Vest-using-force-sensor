@@ -168,7 +168,7 @@ void loop() {
             level = 0;
         }
         // Create MQTT message (JSON format)
-        msgStr = msgStr + "{\"No\":" + patNo + ", \"level\":" + level +  ", \"force\":" + avg_force + "}";
+        msgStr = msgStr + "{\"No\":" + cnt + ", \"level\":" + level +  ", \"force\":" + avg_force + "}";
         msgStr.toCharArray(json, 50);
         unsigned int len = strlen(json);
         //callback(mqtt_topic, (byte*)json, len);
